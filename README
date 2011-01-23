@@ -1,0 +1,6 @@
+lvautoresize - automatically resize LVM volumes
+
+This is simple perl script to resize LV when it's starting to get full. For this to work automatically, add
+* * * * * root /usr/local/sbin/lvautoresize.pl 
+to /etc/cron.d/lvaturesize and set your LVs in /etc/lvautoresize.conf (example config provided in contrib/lvautoresize.conf)
+So far it only supports reiserfs (coz i dont use other fs and im lazy to implement others) but that will change ;] and if u really need something else it's only 1 line to edit in sources :)
