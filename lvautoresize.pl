@@ -58,8 +58,7 @@ while( my($vgname, $vg) = each (%$vglist)) {
 		&info("Volume $lv_path % of free space smalller than min_free_percent, resizing\n");
 		      &resize($lv_path, $fs->{'type'}, $step_size);
 	    } else {
-		info("Filesystem on $lv_path does not need to be resized\n");
-		# not in need of resize
+		# resize not needed
 	    }
 	}
 	else {
