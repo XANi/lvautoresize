@@ -22,7 +22,7 @@ use Carp qw(cluck croak);
 use Data::Dumper;
 use Sys::Syslog;
 use Config::General;
-my $cfgfile="/etc/lvauto.conf";
+my $cfgfile="/etc/lvautoresize.conf";
 my $dry_run = 0; # dont actually do anything
 my $verbose = 0; # be verbose. turn off if u wanna use it from cron
 
@@ -56,7 +56,7 @@ while( my($vgname, $vg) = each (%$vglist)) {
 	    }
 	    elsif ( ( $fs->{'free'} / $fs->{'total'} ) < $min_free_percent ) {
 		&info("Volume $lv_path % of free space smalller than min_free_percent, resizing\n");
-		      &resize($lv_path, $fs->{'type'}, $step_size);
+		&resize($lv_path, $fs->{'type'}, $step_size);
 	    } else {
 		# resize not needed
 	    }
