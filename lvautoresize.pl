@@ -33,15 +33,19 @@ my $config_tmp = new Config::General(
     -ConfigFile            => $cfgfile,
     -MergeDuplicateBlocks  => 'true',
     -MergeDuplicateOptions => 'true',
-    -AllowMultiOptions     => 'true'
+    -AllowMultiOptions     => 'true',
+    -IncludeGlob           => 'true',
 );
 my %config = $config_tmp->getall();
 my $config = \%config;
 my $vglist = $config->{'vg'};
 while ( my ( $vgname, $vg ) = each(%$vglist) ) {
+    $vgname =~ s/("|')//gi;
+    $vgname =~ s/^\s+|\s+$//g;
     my $lvs = $vg->{'lv'};
     while ( my ( $lvname, $lvconfig ) = each(%$lvs) ) {
-
+        $lvname =~ s/("|')//gi;
+        $lvname =~ s/^\s+|\s+$//g;
         my $lv_path          = &get_lv_path( $vgname, $lvname );
         my $fs               = &get_fs_info($lv_path);
         my $min_free         = &get_bytes( $lvconfig->{'min_free'} );
