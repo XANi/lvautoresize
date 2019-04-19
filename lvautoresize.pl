@@ -108,7 +108,8 @@ sub resize() {
         # TODO check if lv_size > partition_size (plus some MBs) then don't do resize
         # so when previous run only resized LV but not partition on it (because of error)
         # we won't resize it at infinitum
-        my $lvresize_txt       = `/sbin/lvresize -L +$step_size $lv_path 2>&1`;
+        my $lvresize_step = int($step_size) . 'B';
+        my $lvresize_txt  = `/sbin/lvresize -L +$lvresize_step $lv_path 2>&1`
         my $lvresize_exit_code = int( $? / 256 );
         if ( $lvresize_exit_code == 0 ) {
             info($lvresize_txt);
