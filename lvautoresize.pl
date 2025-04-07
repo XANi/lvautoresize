@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+# puppet managed file, for more info 'puppet-find-resources $filename'
+
 
 #    lvautoresize - automatically resizes LVs
 #    Copyright (C) 2008-2011  Mariusz Gronczewski
@@ -39,6 +41,7 @@ my $config_tmp = new Config::General(
 my %config = $config_tmp->getall();
 my $config = \%config;
 my $vglist = $config->{'vg'};
+my $exit = 0;
 while ( my ( $vgname, $vg ) = each(%$vglist) ) {
     $vgname =~ s/("|')//gi;
     $vgname =~ s/^\s+|\s+$//g;
@@ -66,11 +69,11 @@ while ( my ( $vgname, $vg ) = each(%$vglist) ) {
             }
             if ( $fs->{'free'} < $min_free ) {
                 &info("Volume $lv_path smaller than min_free, resizing\n");
-                &resize( $lv_path, $fs->{'type'}, $step_size );
+                &resize( $lv_path, $fs->{'mountpoint'}, $fs->{'type'}, $step_size );
             }
             elsif ( ( $fs->{'free'} / $fs->{'total'} ) < $min_free_percent ) {
                 &info("Volume $lv_path % of free space smalller than min_free_percent, resizing\n");
-                &resize( $lv_path, $fs->{'type'}, $step_size );
+                &resize( $lv_path, $fs->{'mountpoint'}, $fs->{'type'}, $step_size );
             }
             else {
                 # resize not needed
@@ -82,6 +85,8 @@ while ( my ( $vgname, $vg ) = each(%$vglist) ) {
 
     }
 }
+if ($exit > 200) {exit 201;}
+exit $exit;
 
 sub dump_config() {
     my $config = shift;
@@ -100,6 +105,7 @@ sub dump_config() {
 
 sub resize() {
     my $lv_path   = shift;
+    my $mount_path = shift;
     my $fs_type   = shift;
     my $step_size = shift;
     if ( defined( $config->{'filesystem'}{$fs_type}{'resize_cmd'} . "\n" ) ) {
@@ -109,11 +115,19 @@ sub resize() {
         # so when previous run only resized LV but not partition on it (because of error)
         # we won't resize it at infinitum
         my $lvresize_step = int($step_size) . 'B';
-        my $lvresize_txt  = `/sbin/lvresize -L +$lvresize_step $lv_path 2>&1`
+        my $lvresize_txt = `/sbin/lvresize -L +$lvresize_step $lv_path 2>&1`;
         my $lvresize_exit_code = int( $? / 256 );
         if ( $lvresize_exit_code == 0 ) {
             info($lvresize_txt);
-            my $fsresize_txt       = `$resize_cmd $lv_path 2>&1`;
+            my $fsresize_txt;
+            if (
+                defined( $config->{'filesystem'}{$fs_type}{'pass_mountpoint'} ) &&
+                    $config->{'filesystem'}{$fs_type}{'pass_mountpoint'}
+            ) {
+                $fsresize_txt = `$resize_cmd $mount_path 2>&1`;
+            } else {
+                $fsresize_txt = `$resize_cmd $lv_path 2>&1`;
+            }
             my $fsresize_exit_code = int( $? / 256 );
             if ( $fsresize_exit_code == 0 ) {
                 info($fsresize_txt);
@@ -122,17 +136,20 @@ sub resize() {
             else {
                 error($fsresize_txt);
                 error("Resize of filesystem on $lv_path failed!\n");
+                $exit++;
                 return 1;
             }
         }
         else {
             error($lvresize_txt);
             error("Resize of LV $lv_path failed!\n");
+            $exit++;
             return 1;
         }
     }
     else {
         error("resize_cmd for fs $fs_type not defined!\n");
+        $exit++;
         return 1;
     }
     return;
@@ -177,6 +194,9 @@ sub get_fs_info() {
     $fs{'total'} = $tmp[2] * 1024;
     $fs{'used'}  = $tmp[3] * 1024;
     $fs{'free'}  = $tmp[4] * 1024;
+    # 5 is percent
+    $fs{'mountpoint'} = $tmp[6];
+
     return \%fs;
 }
 
